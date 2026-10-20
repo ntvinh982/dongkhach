@@ -181,6 +181,8 @@ function shopCodeGet(){try{return localStorage.getItem(SHOPK)||''}catch(_){retur
 function shopCodeSet(v){try{localStorage.setItem(SHOPK,v)}catch(_){}}
 // Link riêng cho từng quán: https://.../?quan=banhmicoba điền sẵn mã quán (chỉ điền sẵn, vẫn phải nhập tên đăng nhập + mật khẩu)
 function shopCodeFromUrl(){try{const v=(new URLSearchParams(location.search).get('quan')||'').trim().toLowerCase();return /^[a-z0-9]{3,30}$/.test(v)?v:''}catch(_){return ''}}
+// enableAI:false trong config.js = ẩn tính năng nhập đơn từ comment Facebook (AI); chưa cấu hình thì mặc định bật
+const AI_ON=CFG.enableAI!==false;
 const shopCodeDefault=()=>shopCodeFromUrl()||shopCodeGet()||CFG.defaultShop||'';
 S.db=!!sb;
 const TBL={staff:'profiles',menu:'menu_items',groups:'menu_groups',customers:'customers',orders:'orders',settings:'settings',shops:'shops'};
@@ -455,7 +457,7 @@ function viewOrders(){
     <div><small>Đã thu</small><b>${vnd(st.cash+st.ck)}</b><em>TM ${vnd(st.cash)} · CK ${vnd(st.ck)}</em></div>
     <div class="due"><small>Chưa thu</small><b>${vnd(st.due)}</b><em>${st.dueN} đơn</em></div>
   </div>`:`<div class="sumline"><span><b>${list.length}</b> đơn</span><span>Đã thu <b>${vnd(st.cash+st.ck)}</b></span><span class="due">Chưa thu <b>${vnd(st.due)}</b></span></div>`;
-  const cmtRow=(!sh&&can('order.create'))?`<button class="cmtbtn" data-act="cmt-open">${icon('paste')}<span><b>Nhập đơn từ comment Facebook</b><small>Dán chữ hoặc ảnh chụp, xem lại rồi tạo hàng loạt</small></span></button>`:'';
+  const cmtRow=(AI_ON&&!sh&&can('order.create'))?`<button class="cmtbtn" data-act="cmt-open">${icon('paste')}<span><b>Nhập đơn từ comment Facebook</b><small>Dán chữ hoặc ảnh chụp, xem lại rồi tạo hàng loạt</small></span></button>`:'';
   let h=`${dayBar}
   ${summary}
   ${cmtRow}
@@ -1619,7 +1621,7 @@ document.addEventListener('click',async e=>{
     case 'day': {S._dayTouched=true; const d=dparse(S.date); d.setDate(d.getDate()+(+el.dataset.d)); S.date=dstr(d); S.sel.clear(); subOrders(); render(); break}
     case 'today': S._dayTouched=true; S.date=dstr(new Date()); S.sel.clear(); subOrders(); render(); break;
     case 'new-order': orderForm(null); break;
-    case 'cmt-open': cmtOpen(); break;
+    case 'cmt-open': if(AI_ON) cmtOpen(); break;
     case 'cmt-read': cmtRead(el); break;
     case 'cmt-save': cmtSave(el); break;
     case 'cmt-back': if(CM){CM.step='in';CM.err='';renderCmt()} break;

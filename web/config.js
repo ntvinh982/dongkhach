@@ -15,5 +15,7 @@ window.LYLY_CONFIG = {
   // Cách liên hệ hiện trong biểu ngữ hết hạn dùng thử, ví dụ "Zalo 09xx xxx xxx"
   supportContact: '0353777082',
   // false = ẩn nút "Tạo quán mới": chỉ nhà cung cấp tạo quán bằng lệnh (scripts/shop.mjs create)
-  allowSignup: false
+  allowSignup: false,
+  // false = ẩn nút "Nhập đơn từ comment Facebook" (AI)
+  enableAI: false
 };

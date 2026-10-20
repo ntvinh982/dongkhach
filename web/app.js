@@ -33,6 +33,7 @@ const IC={
   staff:'<circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c.7-3.6 3.3-5.6 6.5-5.6s5.8 2 6.5 5.6"/>',
   key:'<circle cx="8" cy="15" r="3.5"/><path d="M10.5 12.5 19 4M16 7l2.5 2.5M14 9l2 2"/>',
   chev:'<path d="m10 7 5 5-5 5"/>',
+  palette:'<path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.2" r="1"/><circle cx="14.5" cy="7.2" r="1"/>',
   paste:'<path d="M9 4h6v3H9z"/><path d="M15 5.5h2a1 1 0 0 1 1 1V10M9 5.5H7a1 1 0 0 0-1 1V19a1 1 0 0 0 1 1h4"/><rect x="12" y="11" width="8" height="10" rx="1.5"/><path d="M14.5 15h3M14.5 18h3"/>'
 };
 const icon=(k,c='ic')=>`<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
@@ -47,8 +48,10 @@ const isAdmin=()=>!!S.me&&roleOf(S.me)==='admin';
 const shopRow=()=>S.shops[0]||null;
 const shopSlug=()=>(shopRow()||{}).slug||'';
 const brandName=()=>(shopRow()||{}).name||'';
-// Quán chưa có logo riêng: hiện chữ cái đầu của tên quán (tính năng tải logo lên sẽ làm sau)
-const logoOf=(code,big)=>`<span class="mark${big?' big':''}" aria-hidden="true">${esc((brandName()||CFG.brandName||'Đ').trim().charAt(0).toUpperCase())}</span>`;
+// Logo của quán (Cài đặt → Logo và màu giao diện). Chưa có logo thì hiện chữ cái đầu của tên quán.
+const initialOf=()=>esc((brandName()||CFG.brandName||'Đ').trim().charAt(0).toUpperCase());
+const markHtml=(logo,big)=>logo?`<img class="mark logo${big?' big':''}" src="${logo}" alt="">`:`<span class="mark${big?' big':''}" aria-hidden="true">${initialOf()}</span>`;
+const logoOf=(code,big)=>markHtml(brandNow().logo,big);
 // Hạn dùng của quán: số mili-giây còn lại, hoặc null nếu không giới hạn
 function planLeft(){const s=shopRow(); if(!s) return null; const t=s.status==='trial'?s.trialEndsAt:s.paidUntil; return t?t-Date.now():null}
 function planBanner(){
@@ -116,7 +119,7 @@ const ACT_PERM={
   'new-cust':'cust.edit','edit-cust':'cust.edit','save-cust':'cust.edit',
   'imp-open':'cust.import','imp-paste':'cust.import','imp-mode':'cust.import','imp-run':'cust.import','imp-template':'cust.import','imp-view':'cust.import',
   'sub-menu':'menu.edit','new-group':'menu.edit','edit-group':'menu.edit','save-group':'menu.edit','new-menu':'menu.edit','edit-menu':'menu.edit','save-menu':'menu.edit',
-  'shop-form':'shop.edit','save-shop':'shop.edit',
+  'shop-form':'shop.edit','save-shop':'shop.edit','brand-form':'shop.edit','brand-save':'shop.edit','brand-accent':'shop.edit','brand-rmlogo':'shop.edit',
   'sub-staff':'admin','new-staff':'admin','edit-staff':'admin','save-staff':'admin','del-staff':'admin','perm-reset':'admin','clear-sample':'admin',
   del:'*del'
 };
@@ -365,6 +368,7 @@ const hasSample=()=>S.menu.some(x=>x.sample)||S.groups.some(x=>x.sample)||S.cust
 /* ---------- render ---------- */
 let authMode=null;
 function render(){
+  applyBrand();
   const app=$('#app');
   if(!S.me){
     const mode=!sb?'noconfig':(S.authId||!S.booted)?'wait':(S.signup?'signup':'login');
@@ -656,6 +660,7 @@ function viewSettings(){
   const shopRows=(can('menu.edit')?row('sub-menu','menu','Danh mục món',`${S.groups.length} nhóm · ${S.menu.length} món`):'')
     +(isAdmin()?row('sub-staff','staff','Nhân viên và phân quyền',`${S.staff.filter(x=>x.active!==false).length} tài khoản đang dùng`):'')
     +(can('cust.import')?row('imp-open','customers','Nhập khách từ Excel/CSV',`${S.customers.length} khách hiện có`):'')
+    +(can('shop.edit')?row('brand-form','palette','Logo và màu giao diện',esc(accentName(brandNow().accent))+(brandNow().logo?' · đã có logo':' · chưa có logo')):'')
     +(can('shop.edit')?row('shop-form','print','Thông tin cửa hàng',esc(shop().name)+' · đơn sau '+esc(shop().cutoff)+' tính ngày mai'):'');
   if(shopRows) h+=`<div class="sectionlabel">Cửa hàng</div><div class="rows">${shopRows}</div>`;
   h+=`<div class="sectionlabel">Tài khoản của anh</div><div class="rows">
@@ -695,7 +700,7 @@ function viewStaff(){
 /* ---------- sheets ---------- */
 let F=null, CM=null;
 function openSheet(html){$('#sheetBox').innerHTML=html;$('#sheet').hidden=false;document.body.style.overflow='hidden'}
-function closeSheet(){$('#sheet').hidden=true;$('#sheetBox').innerHTML='';document.body.style.overflow='';F=null;CM=null}
+function closeSheet(){$('#sheet').hidden=true;$('#sheetBox').innerHTML='';document.body.style.overflow='';F=null;CM=null;BR=null;if(BR_PREVIEW){BR_PREVIEW=null;applyBrand()}}
 const head=(t,sub)=>`<div class="sh-head"><div><h2>${t}</h2>${sub?`<small>${sub}</small>`:''}</div><button class="btn" data-act="close">Đóng</button></div>`;
 
 function orderForm(o,presetCust){
@@ -1553,6 +1558,103 @@ async function saveShop(btn){
   catch(e){fail(e);btn.disabled=false}
 }
 
+
+/* ---------- logo và màu giao diện của quán (bảng settings, key 'brand') ---------- */
+// [mã, tên, màu hiện trên ô chọn]. Bảng màu đầy đủ (sáng + tối) nằm trong app.css theo thuộc tính data-accent; "green" là mặc định.
+const ACCENTS=[['green','Xanh lá','#2D6A2E'],['ocean','Xanh dương','#185395'],['teal','Xanh ngọc','#107066'],['orange','Cam đất','#AA470E'],['red','Đỏ','#AB2521'],['pink','Hồng','#A92362'],['purple','Tím','#6733A3'],['brown','Nâu','#714A28'],['slate','Xám than','#404A59']];
+const accentName=a=>(ACCENTS.find(x=>x[0]===a)||ACCENTS[0])[1];
+const LOGO_RE=/^data:image\/(?:webp|png|jpeg);base64,[A-Za-z0-9+/=]+$/, LOGO_MAXLEN=60000;
+const BKEY='lyly_brand_v1'; let BR=null, BR_PREVIEW=null, brandSaved='';
+function brandCacheGet(){try{return JSON.parse(localStorage.getItem(BKEY)||'{}')||{}}catch(_){return {}}}
+// Máy nhớ logo + màu của quán để màn hình đăng nhập (và lúc mới mở app) đã đúng thương hiệu quán
+function brandCacheSet(code,b){
+  const key=code+'|'+b.accent+'|'+b.logo.length+'|'+b.logo.slice(-24); if(!code||key===brandSaved) return; brandSaved=key;
+  try{const m=brandCacheGet(); m[code]={accent:b.accent,logo:b.logo}; localStorage.setItem(BKEY,JSON.stringify(m))}catch(_){}
+}
+function brandNow(){
+  let b=BR_PREVIEW;
+  if(!b){
+    if(S.me&&S.loaded.settings){const r=S.settings.find(x=>x.id==='brand'); b=r?{accent:r.accent,logo:r.logo}:{}}
+    else b=brandCacheGet()[S.me?shopSlug():shopCodeDefault()];
+  }
+  b=b||{};
+  return {accent:ACCENTS.some(x=>x[0]===b.accent)?b.accent:'green', logo:typeof b.logo==='string'&&b.logo.length<=LOGO_MAXLEN*2&&LOGO_RE.test(b.logo)?b.logo:''};
+}
+function applyBrand(){
+  const b=brandNow(), r=document.documentElement;
+  if(b.accent==='green'){ if(r.hasAttribute('data-accent')) r.removeAttribute('data-accent') }
+  else if(r.getAttribute('data-accent')!==b.accent) r.setAttribute('data-accent',b.accent);
+  const m=document.querySelector('meta[name="theme-color"]'), c=(ACCENTS.find(x=>x[0]===b.accent)||ACCENTS[0])[2];
+  if(m&&m.getAttribute('content')!==c) m.setAttribute('content',c);
+  if(S.me&&S.loaded.settings&&!BR_PREVIEW) brandCacheSet(shopSlug(),b);
+}
+// Thu nhỏ ảnh logo trên máy trước khi lưu (vài chục KB là đủ, đỡ tốn dung lượng và tốc độ tải)
+function logoPrep(file){
+  return new Promise((res,rej)=>{
+    if(!/^image\//.test(file.type||'')) return rej(new Error('Chọn file ảnh (png, jpg, webp).'));
+    if(file.size>8*1024*1024) return rej(new Error('Ảnh quá nặng (tối đa 8 MB).'));
+    const rd=new FileReader(); rd.onerror=()=>rej(new Error('Không đọc được ảnh.'));
+    rd.onload=()=>{
+      const im=new Image(), tm=setTimeout(()=>im.onerror&&im.onerror(),10000);
+      im.onerror=()=>{clearTimeout(tm);rej(new Error('Không mở được ảnh này, thử ảnh png/jpg khác.'))};
+      im.onload=()=>{clearTimeout(tm);
+        try{
+          const c=document.createElement('canvas'); if(!c.getContext||!c.getContext('2d')) return rej(new Error('Máy này không thu nhỏ được ảnh.'));
+          const enc=(t,q)=>{try{return c.toDataURL(t,q)}catch(_){return ''}};
+          for(const box of [192,144,112]){
+            const k=Math.min(1,box/Math.max(im.width,im.height)); c.width=Math.max(1,Math.round(im.width*k)); c.height=Math.max(1,Math.round(im.height*k));
+            const x=c.getContext('2d'); x.clearRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height);
+            let out=enc('image/webp',.85);
+            if(!LOGO_RE.test(out)||out.length>LOGO_MAXLEN){ x.globalCompositeOperation='destination-over'; x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); out=enc('image/jpeg',.82) }   // ảnh nặng: chuyển JPEG nền trắng
+            if(LOGO_RE.test(out)&&out.length<=LOGO_MAXLEN) return res(out);
+          }
+          rej(new Error('Ảnh quá phức tạp, thử logo đơn giản hơn.'));
+        }catch(e){ rej(new Error('Không xử lý được ảnh này.')) }
+      };
+      im.src=String(rd.result);
+    };
+    rd.readAsDataURL(file);
+  });
+}
+function brandSheet(){
+  const cur=BR;
+  return `${head('Logo và màu giao diện','Áp dụng cho mọi nhân viên của quán')}
+  <div class="sh-body"><section class="fs"><h4>Logo</h4>
+    <div class="brandprev">${markHtml(cur.logo)}<div class="btns">
+      <label class="btn filebtn" for="br_file">${cur.logo?'Đổi logo':'Chọn ảnh logo'}<input type="file" id="br_file" class="vh" accept="image/*"></label>
+      ${cur.logo?'<button class="btn" data-act="brand-rmlogo" type="button">Xoá logo</button>':''}
+    </div></div>
+    <span class="hint">Ảnh vuông hoặc nền trong suốt đẹp nhất. App tự thu nhỏ. Chưa có logo thì hiện chữ cái đầu tên quán.</span><div id="br_err" class="err" role="alert"></div>
+  </section><section class="fs"><h4>Màu giao diện</h4>
+    <div class="swatches">${ACCENTS.map(a=>`<button type="button" class="swatch" data-act="brand-accent" data-v="${a[0]}" aria-pressed="${cur.accent===a[0]}"><i style="background:${a[2]}"></i>${a[1]}</button>`).join('')}</div>
+    <span class="hint">Chọn là thấy ngay. Sáng/Tối chọn riêng ở đầu trang Cài đặt, mỗi người một kiểu.</span>
+  </section></div>
+  <div class="sh-foot"><span></span><button class="btn primary" data-act="brand-save">Lưu</button></div>`;
+}
+function brandForm(){ const b=brandNow(); BR={accent:b.accent,logo:b.logo}; BR_PREVIEW=null; openSheet(brandSheet()) }
+function brandPreview(){ BR_PREVIEW={accent:BR.accent,logo:BR.logo}; applyBrand() }
+function brandAccent(v){
+  if(!BR||!ACCENTS.some(x=>x[0]===v)) return;
+  BR.accent=v; brandPreview();
+  document.querySelectorAll('#sheetBox .swatch').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));
+}
+function brandRmLogo(){ if(!BR) return; BR.logo=''; brandPreview(); $('#sheetBox').innerHTML=brandSheet() }
+async function brandFile(file){
+  if(!BR) return; const er=$('#br_err'); if(er) er.textContent='';
+  try{ const u=await logoPrep(file); if(!BR) return; BR.logo=u; brandPreview(); $('#sheetBox').innerHTML=brandSheet() }
+  catch(e){ const e2=$('#br_err'); if(e2) e2.textContent=e.message||'Không dùng được ảnh này.' }
+}
+async function brandSave(btn){
+  if(!BR) return; btn.disabled=true;
+  try{
+    const doc={accent:BR.accent}; if(BR.logo) doc.logo=BR.logo;
+    await put('settings','brand',doc);
+    const i=S.settings.findIndex(x=>x.id==='brand'), row=Object.assign({id:'brand'},doc);
+    if(i>=0) S.settings[i]=row; else S.settings.push(row);     // hiện ngay, không chờ máy chủ báo về
+    BR_PREVIEW=null; closeSheet(); render(); toast('Đã lưu logo và màu giao diện');
+  }catch(e){fail(e);btn.disabled=false}
+}
+
 /* ---------- auth submit ---------- */
 async function enter(code,u,pw,err,b){
   const {data,error}=await sb.auth.signInWithPassword({email:emailOf(u,code),password:pw});
@@ -1637,6 +1739,10 @@ document.addEventListener('click',async e=>{
     case 'print-now': {const fr=$('#billFrame'); try{fr.contentWindow.focus();fr.contentWindow.print()}catch(err){toast('Trình duyệt chưa cho in, thử “Tải file”.')} break}
     case 'shop-form': shopForm(); break;
     case 'save-shop': saveShop(el); break;
+    case 'brand-form': brandForm(); break;
+    case 'brand-save': brandSave(el); break;
+    case 'brand-accent': brandAccent(el.dataset.v); break;
+    case 'brand-rmlogo': brandRmLogo(); break;
     case 'edit-order': {const o=S.orders.find(x=>x.id===id); if(o) orderForm(o); break}
     case 'open-order': {const o=S.rep.orders.find(x=>x.id===id); if(o) orderForm(o); break}
     case 'copy': {const v=el.dataset.v; try{await navigator.clipboard.writeText(v);toast('Đã copy '+v)}catch(_){toast('Không copy được, bấm giữ số để chép.')} break}
@@ -1716,6 +1822,7 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='cm_file'){ if(!can('order.create')) return; const fl=t.files?[...t.files]:[]; try{t.value=''}catch(_){} if(fl.length) cmtFiles(fl); return}
+  if(t.id==='br_file'){ if(!can('shop.edit')) return; const f=t.files&&t.files[0]; try{t.value=''}catch(_){} if(f) brandFile(f); return}
   if(t.id==='cm_date'){ if(CM&&t.value) CM.date=t.value; return}
   if(CM&&t.dataset&&t.dataset.cm!==undefined){ if(can('order.create')) cmField(t,'change'); return}
   if(t.dataset&&t.dataset.perm!==undefined){ if(!isAdmin())return; permToggle(t); return}

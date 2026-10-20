@@ -40,7 +40,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 .brand{flex:1;min-width:0}
 .brand b{display:block;font-weight:800;font-size:1.15rem;line-height:1.1;color:var(--brand)}
 .brand span{display:block;font-size:.78rem;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.newbtn{border:0;background:var(--brand);color:var(--brand-fg);border-radius:999px;padding:9px 16px;font-weight:800;font-size:.95rem;cursor:pointer;white-space:nowrap;box-shadow:0 3px 8px rgba(45,106,46,.28)}
+.newbtn{border:0;background:var(--brand);color:var(--brand-fg);border-radius:999px;padding:9px 16px;font-weight:800;font-size:.95rem;cursor:pointer;white-space:nowrap;box-shadow:0 3px 8px color-mix(in srgb,var(--brand) 28%,transparent)}
 .roundbtn{width:40px;height:40px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;flex:none}
 .bnav{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
 .bnav div{max-width:560px;margin:0 auto;display:flex}
@@ -406,3 +406,39 @@ input[type=time]::-webkit-date-and-time-value,input[type=date]::-webkit-date-and
 .top .mark{width:55px;height:55px;font-size:1.7rem}
 .auth .mark.big{width:96px;height:96px;font-size:3rem;border-radius:22px}
 .linkbtn{background:none;border:0;padding:6px;color:var(--brand);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+/* ---------- màu giao diện theo quán (Cài đặt → Logo và màu giao diện): chọn bằng thuộc tính data-accent trên <html>. Mặc định (không có thuộc tính) = xanh lá ---------- */
+:root[data-accent="ocean"]:not([data-theme="dark"]){--bg:#F2F5F8;--surface-2:#E6EAF0;--line:#D1D8E0;--fg:#16202D;--muted:#55606D;--brand:#185395;--brand-fg:#FFFFFF;--brand-soft:#DAE7F6;--leaf:#267AD9;--stub:#DEE7F2;}
+:root[data-accent="teal"]:not([data-theme="dark"]){--bg:#F2F8F7;--surface-2:#E6F0EF;--line:#D1E0DF;--fg:#162D2A;--muted:#556D6A;--brand:#107066;--brand-fg:#FFFFFF;--brand-soft:#DAF6F3;--leaf:#26D9C7;--stub:#DEF2F0;}
+:root[data-accent="orange"]:not([data-theme="dark"]){--bg:#F8F4F2;--surface-2:#F0E9E6;--line:#E0D7D1;--fg:#2D1E16;--muted:#6D5E55;--brand:#AA470E;--brand-fg:#FFFFFF;--brand-soft:#F6E4DA;--leaf:#D96826;--stub:#F2E5DE;}
+:root[data-accent="red"]:not([data-theme="dark"]){--bg:#F8F2F2;--surface-2:#F0E6E6;--line:#E0D2D1;--fg:#2D1616;--muted:#6D5655;--brand:#AB2521;--brand-fg:#FFFFFF;--brand-soft:#F6DBDA;--leaf:#D92C26;--stub:#F2DEDE;}
+:root[data-accent="pink"]:not([data-theme="dark"]){--bg:#F8F2F5;--surface-2:#F0E6EA;--line:#E0D1D8;--fg:#2D1620;--muted:#6D5560;--brand:#A92362;--brand-fg:#FFFFFF;--brand-soft:#F6DAE7;--leaf:#D9267A;--stub:#F2DEE7;}
+:root[data-accent="purple"]:not([data-theme="dark"]){--bg:#F5F2F8;--surface-2:#EAE6F0;--line:#D8D1E0;--fg:#20162D;--muted:#60556D;--brand:#6733A3;--brand-fg:#FFFFFF;--brand-soft:#E7DCF4;--leaf:#7B37C8;--stub:#E7DEF2;}
+:root[data-accent="brown"]:not([data-theme="dark"]){--bg:#F8F5F2;--surface-2:#F0EAE6;--line:#E0D8D1;--fg:#2D2016;--muted:#6D6055;--brand:#714A28;--brand-fg:#FFFFFF;--brand-soft:#F3E7DD;--leaf:#C37B3C;--stub:#F2E7DE;}
+:root[data-accent="slate"]:not([data-theme="dark"]){--bg:#F2F4F8;--surface-2:#E6EAF0;--line:#D1D7E0;--fg:#161F2D;--muted:#555F6D;--brand:#404A59;--brand-fg:#FFFFFF;--brand-soft:#E4E7EC;--leaf:#657B9A;--stub:#DEE6F2;}
+@media (prefers-color-scheme: dark){
+  :root[data-accent="ocean"]:not([data-theme="light"]){--bg:#0D1216;--surface:#14191F;--surface-2:#1D232B;--line:#2E3742;--fg:#DFE5EC;--muted:#9EA8B3;--brand:#79A5D8;--brand-fg:#0A141F;--brand-soft:#182839;--leaf:#6E9BCF;--stub:#1B2837;}
+  :root[data-accent="teal"]:not([data-theme="light"]){--bg:#0D1615;--surface:#141F1E;--surface-2:#1D2B29;--line:#2E4240;--fg:#DFECEB;--muted:#9EB3B1;--brand:#79D8CE;--brand-fg:#0A1F1D;--brand-soft:#183936;--leaf:#6ECFC5;--stub:#1B3734;}
+  :root[data-accent="orange"]:not([data-theme="light"]){--bg:#16110D;--surface:#1F1814;--surface-2:#2B221D;--line:#42352E;--fg:#ECE4DF;--muted:#B3A69E;--brand:#D89C79;--brand-fg:#1F120A;--brand-soft:#392418;--leaf:#CF916E;--stub:#37251B;}
+  :root[data-accent="red"]:not([data-theme="light"]){--bg:#160E0D;--surface:#1F1414;--surface-2:#2B1D1D;--line:#422F2E;--fg:#ECE0DF;--muted:#B39F9E;--brand:#DB8784;--brand-fg:#1F0B0A;--brand-soft:#391A18;--leaf:#CF716E;--stub:#371B1B;}
+  :root[data-accent="pink"]:not([data-theme="light"]){--bg:#160D12;--surface:#1F1419;--surface-2:#2B1D23;--line:#422E37;--fg:#ECDFE5;--muted:#B39EA8;--brand:#DB84AD;--brand-fg:#1F0A14;--brand-soft:#391828;--leaf:#CF6E9B;--stub:#371B28;}
+  :root[data-accent="purple"]:not([data-theme="light"]){--bg:#120D16;--surface:#19141F;--surface-2:#231D2B;--line:#372E42;--fg:#E5DFEC;--muted:#A89EB3;--brand:#B28FDC;--brand-fg:#140A1F;--brand-soft:#281839;--leaf:#9B6ECF;--stub:#281B37;}
+  :root[data-accent="brown"]:not([data-theme="light"]){--bg:#16120D;--surface:#1F1914;--surface-2:#2B231D;--line:#42372E;--fg:#ECE5DF;--muted:#B3A89E;--brand:#D2A67F;--brand-fg:#1F140A;--brand-soft:#392818;--leaf:#CF9B6E;--stub:#37281B;}
+  :root[data-accent="slate"]:not([data-theme="light"]){--bg:#0D1116;--surface:#14191F;--surface-2:#1D232B;--line:#2E3642;--fg:#DFE4EC;--muted:#9EA7B3;--brand:#9AA6B6;--brand-fg:#0A131F;--brand-soft:#182639;--leaf:#6E96CF;--stub:#1B2637;}
+}
+:root[data-accent="ocean"][data-theme="dark"]{--bg:#0D1216;--surface:#14191F;--surface-2:#1D232B;--line:#2E3742;--fg:#DFE5EC;--muted:#9EA8B3;--brand:#79A5D8;--brand-fg:#0A141F;--brand-soft:#182839;--leaf:#6E9BCF;--stub:#1B2837;}
+:root[data-accent="teal"][data-theme="dark"]{--bg:#0D1615;--surface:#141F1E;--surface-2:#1D2B29;--line:#2E4240;--fg:#DFECEB;--muted:#9EB3B1;--brand:#79D8CE;--brand-fg:#0A1F1D;--brand-soft:#183936;--leaf:#6ECFC5;--stub:#1B3734;}
+:root[data-accent="orange"][data-theme="dark"]{--bg:#16110D;--surface:#1F1814;--surface-2:#2B221D;--line:#42352E;--fg:#ECE4DF;--muted:#B3A69E;--brand:#D89C79;--brand-fg:#1F120A;--brand-soft:#392418;--leaf:#CF916E;--stub:#37251B;}
+:root[data-accent="red"][data-theme="dark"]{--bg:#160E0D;--surface:#1F1414;--surface-2:#2B1D1D;--line:#422F2E;--fg:#ECE0DF;--muted:#B39F9E;--brand:#DB8784;--brand-fg:#1F0B0A;--brand-soft:#391A18;--leaf:#CF716E;--stub:#371B1B;}
+:root[data-accent="pink"][data-theme="dark"]{--bg:#160D12;--surface:#1F1419;--surface-2:#2B1D23;--line:#422E37;--fg:#ECDFE5;--muted:#B39EA8;--brand:#DB84AD;--brand-fg:#1F0A14;--brand-soft:#391828;--leaf:#CF6E9B;--stub:#371B28;}
+:root[data-accent="purple"][data-theme="dark"]{--bg:#120D16;--surface:#19141F;--surface-2:#231D2B;--line:#372E42;--fg:#E5DFEC;--muted:#A89EB3;--brand:#B28FDC;--brand-fg:#140A1F;--brand-soft:#281839;--leaf:#9B6ECF;--stub:#281B37;}
+:root[data-accent="brown"][data-theme="dark"]{--bg:#16120D;--surface:#1F1914;--surface-2:#2B231D;--line:#42372E;--fg:#ECE5DF;--muted:#B3A89E;--brand:#D2A67F;--brand-fg:#1F140A;--brand-soft:#392818;--leaf:#CF9B6E;--stub:#37281B;}
+:root[data-accent="slate"][data-theme="dark"]{--bg:#0D1116;--surface:#14191F;--surface-2:#1D232B;--line:#2E3642;--fg:#DFE4EC;--muted:#9EA7B3;--brand:#9AA6B6;--brand-fg:#0A131F;--brand-soft:#182639;--leaf:#6E96CF;--stub:#1B2637;}
+/* logo của quán (ảnh nhỏ lưu trong cài đặt quán) */
+.mark.logo{background:var(--surface);object-fit:contain;border:1px solid var(--line);padding:2px}
+.brandprev{display:flex;align-items:center;gap:14px;margin:6px 0 12px}
+.brandprev .mark{width:72px;height:72px;font-size:2.2rem;border-radius:16px}
+.brandprev .btns{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.swatch{display:flex;flex-direction:column;align-items:center;gap:6px;border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:10px 6px;cursor:pointer;font-weight:700;font-size:.85rem;color:var(--fg);min-height:72px}
+.swatch i{display:block;width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.swatch[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}

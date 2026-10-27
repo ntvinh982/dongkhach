@@ -51,6 +51,9 @@ const IC={
   staff:'<circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c.7-3.6 3.3-5.6 6.5-5.6s5.8 2 6.5 5.6"/>',
   key:'<circle cx="8" cy="15" r="3.5"/><path d="M10.5 12.5 19 4M16 7l2.5 2.5M14 9l2 2"/>',
   chev:'<path d="m10 7 5 5-5 5"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  down:'<path d="m7 10 5 5 5-5"/>',
+  up:'<path d="m7 14 5-5 5 5"/>',
   palette:'<path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.2" r="1"/><circle cx="14.5" cy="7.2" r="1"/>',
   paste:'<path d="M9 4h6v3H9z"/><path d="M15 5.5h2a1 1 0 0 1 1 1V10M9 5.5H7a1 1 0 0 0-1 1V19a1 1 0 0 0 1 1h4"/><rect x="12" y="11" width="8" height="10" rx="1.5"/><path d="M14.5 15h3M14.5 18h3"/>'
 };
@@ -136,7 +139,7 @@ const visibleOrders=()=>{ if(!restricted()) return S.orders; const [lo,hi]=shipR
 const ACT_PERM={
   nav:null,logout:null,filter:null,copy:null,close:null,'change-pw':null,'save-pw':null,theme:null,'sub-back':null,
   qty:null,gtab:null,seg:null,time:null,pick:null,unpick:null,clearcust:null,
-  day:null,today:null,   // shipper cũng chuyển ngày được, nhưng chỉ trong 5 ngày (xem shipRange)
+  day:null,today:null,'done-toggle':null,'done-open':null,'done-close':null,   // shipper cũng chuyển ngày được, nhưng chỉ trong 5 ngày (xem shipRange)
   layout:'order.assign','ship-filter':'order.assign','sel-unassigned':'order.assign','sel-all':'order.assign','sel-clear':'order.assign','bulk-assign':'order.assign',
   'new-order':'order.create','order-for':'order.create','save-order':'*order',
   'cmt-open':'order.create','cmt-read':'order.create','cmt-save':'order.create','cmt-back':'order.create','cmt-rmimg':'order.create','cmt-mode':'order.create','cmt-pick':'order.create','cmt-qty':'order.create','cmt-rmitem':'order.create','cmt-additem':'order.create',
@@ -167,6 +170,10 @@ const LKEY='lyly_layout_v1'; let memLayout='cards';
 function layoutGet(){let v; try{v=localStorage.getItem(LKEY)}catch(_){v=memLayout} return v==='table'||v==='assign'?v:'cards'}
 function layoutSet(v){memLayout=v;try{localStorage.setItem(LKEY,v)}catch(_){}}
 S.layout=layoutGet(); S.sel=new Set(); S.shipFilter='all'; S.bulkShip='';
+// Đơn đã giao (kiểu Thẻ): gom xuống nhóm "Đã giao" ở cuối, mỗi đơn một dòng; bấm vào dòng thì mở thẻ đầy đủ tại chỗ.
+// doneHide = ẩn cả nhóm (nhớ theo máy), doneOpen = các đơn đang mở trong nhóm (chỉ trong phiên này).
+const DHKEY='dk_done_hide_v1';
+S.doneHide=(()=>{try{return localStorage.getItem(DHKEY)==='1'}catch(_){return false}})(); S.doneOpen=new Set();
 const itemsText=o=>(o.items||[]).map(it=>`${it.qty}× ${esc(it.name)}`).join(', ');
 const payShort=o=>payOf(o)==='unpaid'?(noCol(o)?'Trả sau':'Chưa thu'):(payOf(o)==='cash'?'Đã thu · TM':'Đã thu · CK');
 async function assignShipper(ids,shipperId){
@@ -215,7 +222,7 @@ function shopCodeFromUrl(){try{const v=(new URLSearchParams(location.search).get
 // enableAI:false trong config.js = ẩn tính năng nhập đơn từ comment Facebook (AI); chưa cấu hình thì mặc định bật
 const AI_ON=CFG.enableAI!==false;
 // Số phiên bản hiện ở cuối Cài đặt: để biết quán/máy nào đang chạy bản nào. Đổi mỗi lần đưa bản mới lên cho khách (dạng năm.tháng.ngày).
-const APP_VERSION='2026.10.27';
+const APP_VERSION='2026.10.27.1';
 const shopCodeDefault=()=>shopCodeFromUrl()||shopCodeGet()||CFG.defaultShop||'';
 S.db=!!sb;
 const TBL={staff:'profiles',menu:'menu_items',groups:'menu_groups',customers:'customers',orders:'orders',settings:'settings',shops:'shops',costs:'menu_costs'};
@@ -512,7 +519,30 @@ function viewOrders(){
   S._shown=shown.map(o=>o.id);
   const bar=`<div class="printall"><span class="hint">${shown.length} đơn đang hiện</span>${!can('order.print')?'':`<button class="sbtn prt" data-act="print-all">${icon('print')}In tất cả ${shown.length} bill</button>`}</div>`;
   if(lay==='table') return h+bar+tableView(shown);
-  return h+bar+`<div class="list">${shown.map(o=>ticket(o,no[o.id])).join('')}</div>`;
+  return h+bar+cardsView(shown,no);
+}
+/* Kiểu Thẻ: đơn chưa giao ở trên (thẻ đầy đủ), đơn đã giao gom xuống nhóm "Đã giao" ở cuối (mỗi đơn 1 dòng, bấm để mở) */
+function cardsView(shown,no){
+  const todo=shown.filter(o=>!o.delivered), done=shown.filter(o=>o.delivered);
+  for(const id of [...S.doneOpen]) if(!done.some(o=>o.id===id)) S.doneOpen.delete(id);
+  let h='';
+  if(todo.length&&done.length) h+=`<div class="grouplab">Chưa giao · ${todo.length} đơn</div>`;
+  if(todo.length) h+=`<div class="list">${todo.map(o=>ticket(o,no[o.id])).join('')}</div>`;
+  if(done.length){
+    const sum=done.reduce((s,o)=>s+(o.total||0),0);
+    h+=`<button type="button" class="donehead" data-act="done-toggle" aria-expanded="${!S.doneHide}"><span>✓ Đã giao · ${done.length} đơn ·</span> <small>${vnd(sum)}</small><i></i><b>${S.doneHide?'Xem':'Thu gọn'} ${icon(S.doneHide?'down':'up')}</b></button>`;
+    if(!S.doneHide) h+=`<div class="list">${done.map(o=>S.doneOpen.has(o.id)?ticket(o,no[o.id],true):doneRow(o,no[o.id])).join('')}</div>`;
+  }
+  return h;
+}
+function doneRow(o,n){
+  const its=(o.items||[]).map(it=>`${it.qty}× ${it.name}`).join(', ');
+  return `<article class="drow" data-act="done-open" data-id="${o.id}" tabindex="0" aria-expanded="false" aria-label="Mở đơn số ${n}, ${esc(o.name||'Khách lẻ')}">
+    <span class="dck">${icon('check')}</span>
+    <div class="dmain"><b><span class="dno">#${n}${o.time?' · '+esc(o.time):''}</span> · ${esc(o.name||'Khách lẻ')}</b><span>${o.mode==='lay'?'Đã lấy':'Đã giao'}${its?' · '+esc(its):''}</span></div>
+    <div class="damt"><b>${vnd(o.total)}</b><span class="pill pay-${payCls(o)}">${payShort(o)}</span></div>
+    <span class="dchev">${icon('down')}</span>
+  </article>`;
 }
 
 /* ---------- chế độ "Tổng quan": bảng gọn toàn bộ đơn trong ngày ---------- */
@@ -566,7 +596,7 @@ function assignView(dl,sf,nLay){
     <button class="btn primary" data-act="bulk-assign" ${S.bulkShip===''?'disabled':''}>Gán ${nSel} đơn</button></div>`;
   return h;
 }
-function ticket(o,n){
+function ticket(o,n,opened){
   const lay=o.mode==='lay';
   const items=(o.items||[]).map(it=>`<li><span class="q">${it.qty}×</span><span class="n">${esc(it.name)}${it.note?`<em>${esc(it.note)}</em>`:''}</span><span class="p">${vnd(it.price*it.qty)}</span></li>`).join('');
   const ro=!can('order.edit')||offDay(o); // không được sửa (hoặc shipper xem đơn ngày khác): thẻ không bấm mở được
@@ -580,9 +610,11 @@ function ticket(o,n){
   const shn=shipperLabel(o);
   const shipLine=(!restricted()&&!lay)?`<div class="shp ${shn?'':'none'}">${shn?'Shipper: '+esc(shn):'Chưa gán shipper'}</div>`:'';
   return `<article class="ticket ${o.delivered?'done':''} ${lay?'lay':''} ${ro?'ro':''}" ${ro?'':`data-act="edit-order" data-id="${o.id}" tabindex="0"`}>
-    <div class="stub">${o.time?'<div class="pre">trước</div>':''}<div class="t ${o.time?'':'none'}">${o.time?esc(o.time):'--:--'}</div><div class="m">${lay?'Ghé lấy':'Giao'}</div><div class="no">#${n}</div></div>
+    <div class="stub">${o.delivered
+      ?`<span class="sck">${icon('check')}</span><div class="m">${lay?'Đã lấy':'Đã giao'}</div>${o.time?`<div class="ht">hẹn ${esc(o.time)}</div>`:''}`
+      :`${o.time?'<div class="pre">trước</div>':''}<div class="t ${o.time?'':'none'}">${o.time?esc(o.time):'--:--'}</div><div class="m">${lay?'Ghé lấy':'Giao'}</div>`}<div class="no">#${n}</div></div>
     <div class="tbody">
-      <div class="row1"><div class="who"><h3>${esc(o.name||'Khách lẻ')}</h3>${o.phone?`<span class="ph">${esc(o.phone)}<button class="copy" data-act="copy" data-v="${esc(o.phone)}">copy</button></span>`:''}</div><span class="pill pay-${payCls(o)}">${payLabel(o)}</span></div>
+      <div class="row1"><div class="who"><h3>${esc(o.name||'Khách lẻ')}</h3>${o.phone?`<span class="ph">${esc(o.phone)}<button class="copy" data-act="copy" data-v="${esc(o.phone)}">copy</button></span>`:''}</div><span class="pill pay-${payCls(o)}">${payLabel(o)}</span>${opened?`<button class="dclose" data-act="done-close" data-id="${o.id}" aria-label="Thu gọn đơn này" title="Thu gọn">${icon('up')}</button>`:''}</div>
       ${o.address&&!lay?`<div class="addr">${esc(o.address)}</div>`:''}
       ${shipLine}
       ${o.note?`<p class="onote"><b>Ghi chú</b>${esc(o.note)}</p>`:''}
@@ -1852,7 +1884,13 @@ document.addEventListener('click',async e=>{
     case 'open-order': {const o=S.rep.orders.find(x=>x.id===id); if(o) orderForm(o); break}
     case 'copy': {const v=el.dataset.v; try{await navigator.clipboard.writeText(v);toast('Đã copy '+v)}catch(_){toast('Không copy được, bấm giữ số để chép.')} break}
     case 'pay': {const v=el.dataset.v; const o0=S.orders.find(x=>x.id===id); if(o0&&offDay(o0)){toast('Đơn ngày khác chỉ để xem.');return} el.disabled=true; try{await patch('orders',id,{payment:v,updatedAt:Date.now(),updatedBy:S.me.name}); toast(v==='unpaid'?'Đã chuyển về chưa thu':'Đã ghi nhận '+(v==='cash'?'tiền mặt':'chuyển khoản'))}catch(err){fail(err);el.disabled=false} break}
-    case 'deliver': {const o=S.orders.find(x=>x.id===id); if(!o)return; if(offDay(o)){toast('Đơn ngày khác chỉ để xem.');return} el.disabled=true; try{await patch('orders',id,{delivered:!o.delivered,updatedAt:Date.now(),updatedBy:S.me.name})}catch(err){fail(err);el.disabled=false} break}
+    case 'deliver': {const o=S.orders.find(x=>x.id===id); if(!o)return; if(offDay(o)){toast('Đơn ngày khác chỉ để xem.');return} el.disabled=true; const nv=!o.delivered;
+      try{await patch('orders',id,{delivered:nv,updatedAt:Date.now(),updatedBy:S.me.name}); S.doneOpen.delete(id);
+        if(curLay()==='cards') toast(nv?`Đơn #${sortedOrders().no[id]||''} đã ${o.mode==='lay'?'lấy':'giao'} · chuyển xuống nhóm "Đã giao"`:`Đơn #${sortedOrders().no[id]||''} chuyển về nhóm "Chưa giao"`)}
+      catch(err){fail(err);el.disabled=false} break}
+    case 'done-toggle': S.doneHide=!S.doneHide; try{localStorage.setItem(DHKEY,S.doneHide?'1':'0')}catch(_){} render(); break;
+    case 'done-open': S.doneOpen.add(id); render(); break;
+    case 'done-close': S.doneOpen.delete(id); render(); break;
     case 'close': closeSheet(); break;
     case 'qty': {const mid=el.dataset.mid,d=+el.dataset.d; const r=F.rows.find(x=>x.menuId===mid); if(!r)return;
       const it=F.itemMap[mid]||(F.itemMap[mid]={menuId:mid,name:r.name,price:r.price,qty:0,note:''});
@@ -1917,7 +1955,7 @@ document.addEventListener('paste',e=>{
 });
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&!$('#sheet').hidden) closeSheet();
-  if((e.key==='Enter'||e.key===' ')&&e.target.matches('.ticket,.debt,.orow,.a-info')){e.preventDefault();e.target.click()}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('.ticket,.debt,.orow,.a-info,.drow')){e.preventDefault();e.target.click()}
 });
 document.addEventListener('input',e=>{
   const t=e.target;

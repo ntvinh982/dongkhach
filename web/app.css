@@ -468,3 +468,14 @@ input[type=time]::-webkit-date-and-time-value,input[type=date]::-webkit-date-and
 
 /* Đơn đã giao (v7.1): giữ nguyên chỗ, không làm mờ; tô theo MÀU QUÁN (đổi màu giao diện là đổi theo): viền màu quán,
    cột trái nền đậm màu quán + dấu ✓ (.ticket.done .stub ở trên); nút "✓ Đã giao" dùng .sbtn.on (màu quán) */
+
+/* Nhập đơn từ comment: chọn món của bài đăng (v7.2) */
+.cm-post{display:flex;flex-wrap:wrap;gap:6px}
+.cm-post .chip{white-space:normal;text-align:left;line-height:1.25}
+.cm-post .chip[aria-pressed="true"] span{opacity:.85}
+.cm-pq{margin-bottom:8px}
+.cm-cnt{font-size:.78rem;font-weight:800;color:var(--brand);background:var(--brand-soft);border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:1px;text-transform:none;letter-spacing:0}
+.cm-sel{margin-bottom:10px}
+.cm-post .chip.on b{margin-left:6px;font-weight:800;opacity:.9}
+.cm-lab{margin:2px 0 6px;font-size:.78rem;font-weight:800;color:var(--muted)}
+#cm_post .linkbtn{margin-top:8px}
